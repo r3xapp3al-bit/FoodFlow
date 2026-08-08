@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    /* ─── Configuración básica ─── */
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["ES2022"],
+
+    /* ─── Directorios ─── */
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    /* ─── Interoperabilidad ─── */
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+
+    /* ─── Type checking ─── */
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    /* ─── Decorators (para Fastify) ─── */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    /* ─── Source maps ─── */
+    "sourceMap": true,
+    "declaration": false,
+    "declarationMap": false,
+
+    /* ─── Otros ─── */
+    "isolatedModules": true,
+    "moduleDetection": "force"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+}
