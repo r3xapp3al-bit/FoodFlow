@@ -5,6 +5,8 @@ import { supabase } from './config/supabase';
 import authRoutes from './routes/auth.routes';
 import usersRoutes from './routes/users.routes';
 import sitesRoutes from './routes/sites.routes';
+import categoriesRoutes from './routes/categories.routes';
+import productsRoutes from './routes/products.routes';
 
 dotenv.config();
 
@@ -33,10 +35,34 @@ app.get('/test-db', async () => {
   }
 });
 
+// ── 🔬 ENDPOINT DE PRUEBA (GET, sin body) ──
+app.get('/test-insert', async (_request, reply) => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({
+        name: 'Categoría de prueba GET',
+        description: 'Creada desde endpoint de prueba (GET)',
+        site_id: 'b8e6d5c4-3a2b-1c0d-9e8f-7a6b5c4d3e2f',
+        is_active: true,
+        sort_order: 0,
+      })
+      .select();
+
+    if (error) throw error;
+    return reply.send({ success: true, data });
+  } catch (err: any) {
+    console.error('❌ Error en /test-insert:', err);
+    return reply.status(500).send({ success: false, error: err.message });
+  }
+});
+
 // ── Registrar módulos ────────────────────────────────
 app.register(authRoutes);
 app.register(usersRoutes);
 app.register(sitesRoutes);
+app.register(categoriesRoutes, { prefix: '/categories' });
+app.register(productsRoutes, { prefix: '/products' });
 
 // ── Iniciar servidor ──────────────────────────────────
 const start = async () => {
