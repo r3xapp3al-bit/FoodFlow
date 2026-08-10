@@ -8,6 +8,7 @@ import sitesRoutes from './routes/sites.routes';
 import categoriesRoutes from './routes/categories.routes';
 import productsRoutes from './routes/products.routes';
 import suppliesRoutes from './routes/supplies.routes';
+import inventoryRoutes from './routes/inventory.routes';
 
 dotenv.config();
 
@@ -65,6 +66,7 @@ app.register(sitesRoutes);
 app.register(categoriesRoutes, { prefix: '/categories' });
 app.register(productsRoutes, { prefix: '/products' });
 app.register(suppliesRoutes, { prefix: '/supplies' });
+app.register(inventoryRoutes); // Rutas: /inventory, /batches, /movements
 
 // ── Iniciar servidor ──────────────────────────────────
 const start = async () => {
