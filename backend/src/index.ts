@@ -7,6 +7,7 @@ import usersRoutes from './routes/users.routes';
 import sitesRoutes from './routes/sites.routes';
 import categoriesRoutes from './routes/categories.routes';
 import productsRoutes from './routes/products.routes';
+import suppliesRoutes from './routes/supplies.routes';
 
 dotenv.config();
 
@@ -63,6 +64,7 @@ app.register(usersRoutes);
 app.register(sitesRoutes);
 app.register(categoriesRoutes, { prefix: '/categories' });
 app.register(productsRoutes, { prefix: '/products' });
+app.register(suppliesRoutes, { prefix: '/supplies' });
 
 // ── Iniciar servidor ──────────────────────────────────
 const start = async () => {
