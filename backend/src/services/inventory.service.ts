@@ -19,11 +19,12 @@ export class InventoryService {
   async listInventory(siteId: string, query: ListInventoryQuery) {
     const { limit, offset, branch_id, insumo_id } = query;
 
+    // ✅ CORREGIDO: Usar !inner para forzar INNER JOIN y permitir filtro por site_id
     let supabaseQuery = supabase
       .from('inventory')
       .select(`
         *,
-        supplies(name, unit),
+        supplies!inner(name, unit, site_id),
         branches(name)
       `, { count: 'exact' })
       .eq('supplies.site_id', siteId);
@@ -33,7 +34,7 @@ export class InventoryService {
 
     const { data, error, count } = await supabaseQuery
       .range(offset, offset + limit - 1)
-      .order('name', { ascending: true, foreignTable: 'supplies' }); // ✅ Corrección final
+      .order('name', { ascending: true, foreignTable: 'supplies' });
 
     if (error) throw new Error(`Error al listar inventario: ${error.message}`);
     return { data: data || [], total: count || 0, limit, offset };
