@@ -12,7 +12,12 @@ import inventoryRoutes from './routes/inventory.routes';
 import customersRoutes from './routes/customers.routes';
 import ordersRoutes from './routes/orders.routes';
 import recipesRoutes from './routes/recipes.routes';
-import promotionsRoutes from './routes/promotions.routes'; // <-- NUEVO
+import promotionsRoutes from './routes/promotions.routes';
+import paymentsRoutes from './routes/payments.routes';        // NUEVO
+import returnsRoutes from './routes/returns.routes';          // NUEVO
+import wastagesRoutes from './routes/wastages.routes';        // NUEVO
+import reportsRoutes from './routes/reports.routes';          // NUEVO
+import auditRoutes from './routes/audit.routes';              // NUEVO
 
 dotenv.config();
 
@@ -74,7 +79,12 @@ app.register(inventoryRoutes); // Rutas: /inventory, /batches, /movements
 app.register(customersRoutes, { prefix: '/customers' });
 app.register(ordersRoutes, { prefix: '/orders' });
 app.register(recipesRoutes, { prefix: '/recipes' });
-app.register(promotionsRoutes, { prefix: '/promotions' }); // <-- NUEVO
+app.register(promotionsRoutes, { prefix: '/promotions' });
+app.register(paymentsRoutes, { prefix: '/payments' });       // NUEVO
+app.register(returnsRoutes, { prefix: '/returns' });         // NUEVO
+app.register(wastagesRoutes, { prefix: '/wastages' });       // NUEVO
+app.register(reportsRoutes, { prefix: '/reports' });         // NUEVO
+app.register(auditRoutes, { prefix: '/audit' });             // NUEVO
 
 // ── Iniciar servidor ──────────────────────────────────
 const start = async () => {
