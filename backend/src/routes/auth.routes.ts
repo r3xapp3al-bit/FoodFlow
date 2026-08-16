@@ -1,10 +1,16 @@
 import { FastifyInstance } from 'fastify';
 import { authMiddleware } from '../middlewares/auth.middleware';
-import { getProfileHandler } from '../controllers/auth.controller';
 import { supabase } from '../config/supabase';
+import {
+  getProfileHandler,
+  updateProfileHandler,
+  changePasswordHandler,
+  forgotPasswordHandler,
+  resetPasswordHandler,
+} from '../controllers/auth.controller';
 
 export default async function authRoutes(app: FastifyInstance) {
-  // 🔐 Ruta de login (temporal para pruebas)
+  // ── Endpoints públicos ─────────────────────────────
   app.post('/auth/login', async (request, reply) => {
     try {
       const { email, password } = request.body as any;
@@ -28,6 +34,16 @@ export default async function authRoutes(app: FastifyInstance) {
     }
   });
 
-  // Ruta protegida: obtener perfil del usuario autenticado
+  // Registro (público, opcional) - ELIMINAMOS 'request' PARA EVITAR EL ERROR
+  app.post('/auth/register', async (_request, reply) => {
+    return reply.status(501).send({ success: false, error: 'Registro no implementado' });
+  });
+
+  app.post('/auth/forgot-password', forgotPasswordHandler);
+  app.post('/auth/reset-password', resetPasswordHandler);
+
+  // ── Endpoints protegidos ──
   app.get('/auth/me', { preHandler: authMiddleware }, getProfileHandler);
+  app.put('/auth/me', { preHandler: authMiddleware }, updateProfileHandler);
+  app.post('/auth/change-password', { preHandler: authMiddleware }, changePasswordHandler);
 }
