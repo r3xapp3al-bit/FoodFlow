@@ -9,7 +9,7 @@ export class ReportService {
       .select('total, created_at')
       .gte('created_at', `${today}T00:00:00Z`)
       .lt('created_at', `${today}T23:59:59Z`)
-      .eq('status', 'ENTREGADO'); // Solo órdenes entregadas (pagadas)
+      .eq('status', 'ENTREGADO');
 
     if (siteId) {
       query = query.eq('site_id', siteId);
@@ -29,6 +29,59 @@ export class ReportService {
     };
   }
 
+  // Ventas por período (día, semana, mes)
+  async getSalesByPeriod(siteId?: string, start?: string, end?: string, period?: 'day' | 'week' | 'month') {
+    let query = supabase
+      .from('orders')
+      .select('total, created_at')
+      .eq('status', 'ENTREGADO');
+
+    if (siteId) {
+      query = query.eq('site_id', siteId);
+    }
+
+    if (start) {
+      query = query.gte('created_at', start);
+    }
+    if (end) {
+      query = query.lte('created_at', end);
+    }
+
+    // Si no se especifica start/end, usar período
+    if (!start && !end && period) {
+      const now = new Date();
+      let startDate = new Date();
+      switch (period) {
+        case 'day':
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          startDate.setDate(now.getDate() - now.getDay());
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case 'month':
+          startDate.setDate(1);
+          startDate.setHours(0, 0, 0, 0);
+          break;
+      }
+      query = query.gte('created_at', startDate.toISOString());
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: true });
+    if (error) throw new Error(`Error al obtener ventas por período: ${error.message}`);
+
+    const totalSales = data.reduce((acc, order) => acc + Number(order.total), 0);
+    const orderCount = data.length;
+
+    return {
+      period: period || 'custom',
+      totalSales,
+      orderCount,
+      averageTicket: orderCount > 0 ? totalSales / orderCount : 0,
+      data,
+    };
+  }
+
   // Stock actual por sitio (o global)
   async getCurrentInventory(siteId?: string) {
     let query = supabase.from('inventory').select(`
@@ -41,14 +94,38 @@ export class ReportService {
     `);
 
     if (siteId) {
-      // Necesitamos filtrar por site_id a través de la relación supplies
       query = query.eq('supplies.site_id', siteId);
     }
 
     const { data, error } = await query;
     if (error) throw new Error(`Error al obtener inventario: ${error.message}`);
 
-    // Asegurar que supplies sea un objeto (no un array)
+    return data.map(item => ({
+      ...item,
+      supplies: Array.isArray(item.supplies) ? item.supplies[0] : item.supplies
+    }));
+  }
+
+  // Productos con bajo stock
+  async getLowStockProducts(siteId?: string, threshold: number = 10) {
+    let query = supabase
+      .from('inventory')
+      .select(`
+        id,
+        available_stock,
+        stock_total,
+        reorder_point,
+        supplies(name, unit, site_id)
+      `)
+      .lt('stock_total', threshold);
+
+    if (siteId) {
+      query = query.eq('supplies.site_id', siteId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw new Error(`Error al obtener productos con bajo stock: ${error.message}`);
+
     return data.map(item => ({
       ...item,
       supplies: Array.isArray(item.supplies) ? item.supplies[0] : item.supplies
@@ -61,7 +138,6 @@ export class ReportService {
     startDate.setDate(startDate.getDate() - days);
     const startISO = startDate.toISOString();
 
-    // 1. Obtener IDs de órdenes entregadas en el período
     let ordersQuery = supabase
       .from('orders')
       .select('id')
@@ -77,7 +153,6 @@ export class ReportService {
     const orderIds = orders.map(o => o.id);
     if (orderIds.length === 0) return [];
 
-    // 2. Obtener items de esas órdenes
     let itemsQuery = supabase
       .from('order_items')
       .select(`
@@ -90,11 +165,9 @@ export class ReportService {
     const { data: items, error: itemsError } = await itemsQuery;
     if (itemsError) throw new Error(`Error al obtener items: ${itemsError.message}`);
 
-    // 3. Agrupar por producto
     const productMap = new Map();
     items.forEach(item => {
       const product = item.products;
-      // products es un array (por la relación), tomamos el primer elemento
       const p = Array.isArray(product) ? product[0] : product;
       if (!p) return;
       const pid = item.product_id;
@@ -109,11 +182,25 @@ export class ReportService {
       productMap.get(pid).totalQuantity += item.quantity;
     });
 
-    // 4. Ordenar y limitar
-    const sorted = Array.from(productMap.values())
+    return Array.from(productMap.values())
       .sort((a, b) => b.totalQuantity - a.totalQuantity)
       .slice(0, limit);
+  }
 
-    return sorted;
+  // Exportar reporte de ventas (CSV o Excel)
+  async exportSalesReport(siteId?: string, start?: string, end?: string, format: 'csv' | 'excel' = 'csv') {
+    const salesData = await this.getSalesByPeriod(siteId, start, end);
+    
+    // Generar CSV simple
+    if (format === 'csv') {
+      const headers = 'Fecha,Total,Orden\n';
+      const rows = salesData.data.map((order: any) => 
+        `${order.created_at},${order.total},${order.id}`
+      ).join('\n');
+      return headers + rows;
+    }
+
+    // Para Excel (simplificado, devolvemos JSON)
+    return salesData.data;
   }
 }

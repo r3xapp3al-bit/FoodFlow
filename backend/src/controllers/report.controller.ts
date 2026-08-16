@@ -24,6 +24,27 @@ export async function getDailySalesHandler(request: FastifyRequest, reply: Fasti
   }
 }
 
+export async function getSalesByPeriodHandler(
+  request: FastifyRequest<{ Querystring: { start?: string; end?: string; period?: 'day' | 'week' | 'month' } }>,
+  reply: FastifyReply
+) {
+  try {
+    const authUser = getAuthUser(request);
+    if (!authUser || (!authUser.roles.includes('super_admin') && !authUser.roles.includes('site_admin'))) {
+      return reply.status(403).send({ success: false, error: 'Sin permisos' });
+    }
+
+    const { start, end, period } = request.query;
+    const siteId = authUser.roles.includes('super_admin') ? undefined : authUser.site_id;
+
+    const data = await reportService.getSalesByPeriod(siteId, start, end, period);
+    return reply.send({ success: true, data });
+  } catch (err: any) {
+    console.error('Error en getSalesByPeriodHandler:', err);
+    return reply.status(500).send({ success: false, error: err.message || 'Error al obtener ventas por período' });
+  }
+}
+
 export async function getCurrentInventoryHandler(request: FastifyRequest, reply: FastifyReply) {
   try {
     const authUser = getAuthUser(request);
@@ -40,7 +61,31 @@ export async function getCurrentInventoryHandler(request: FastifyRequest, reply:
   }
 }
 
-export async function getTopProductsHandler(request: FastifyRequest<{ Querystring: { limit?: string; days?: string } }>, reply: FastifyReply) {
+export async function getLowStockProductsHandler(
+  request: FastifyRequest<{ Querystring: { threshold?: string } }>,
+  reply: FastifyReply
+) {
+  try {
+    const authUser = getAuthUser(request);
+    if (!authUser || (!authUser.roles.includes('super_admin') && !authUser.roles.includes('site_admin'))) {
+      return reply.status(403).send({ success: false, error: 'Sin permisos' });
+    }
+
+    const threshold = Number(request.query.threshold) || 10;
+    const siteId = authUser.roles.includes('super_admin') ? undefined : authUser.site_id;
+
+    const data = await reportService.getLowStockProducts(siteId, threshold);
+    return reply.send({ success: true, data });
+  } catch (err: any) {
+    console.error('Error en getLowStockProductsHandler:', err);
+    return reply.status(500).send({ success: false, error: err.message || 'Error al obtener productos con bajo stock' });
+  }
+}
+
+export async function getTopProductsHandler(
+  request: FastifyRequest<{ Querystring: { limit?: string; days?: string } }>,
+  reply: FastifyReply
+) {
   try {
     const authUser = getAuthUser(request);
     if (!authUser || (!authUser.roles.includes('super_admin') && !authUser.roles.includes('site_admin') && !authUser.roles.includes('branch_manager'))) {
@@ -56,5 +101,29 @@ export async function getTopProductsHandler(request: FastifyRequest<{ Querystrin
   } catch (err: any) {
     console.error('Error en getTopProductsHandler:', err);
     return reply.status(500).send({ success: false, error: err.message || 'Error al obtener top productos' });
+  }
+}
+
+export async function exportSalesReportHandler(
+  request: FastifyRequest<{ Querystring: { start?: string; end?: string; format?: 'csv' | 'excel' } }>,
+  reply: FastifyReply
+) {
+  try {
+    const authUser = getAuthUser(request);
+    if (!authUser || (!authUser.roles.includes('super_admin') && !authUser.roles.includes('site_admin'))) {
+      return reply.status(403).send({ success: false, error: 'Sin permisos' });
+    }
+
+    const { start, end, format = 'csv' } = request.query;
+    const siteId = authUser.roles.includes('super_admin') ? undefined : authUser.site_id;
+
+    const data = await reportService.exportSalesReport(siteId, start, end, format);
+    
+    reply.header('Content-Type', format === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    reply.header('Content-Disposition', `attachment; filename=ventas.${format === 'csv' ? 'csv' : 'xlsx'}`);
+    return reply.send(data);
+  } catch (err: any) {
+    console.error('Error en exportSalesReportHandler:', err);
+    return reply.status(500).send({ success: false, error: err.message || 'Error al exportar reporte' });
   }
 }
